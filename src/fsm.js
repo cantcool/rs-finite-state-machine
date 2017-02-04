@@ -10,6 +10,8 @@ class FSM {
 
         this.config = config;
         this._state = this.config.initial;
+        this._history = [];
+        this._historyNextStep = 0;
     }
 
     /**
@@ -46,6 +48,7 @@ class FSM {
         }
 
         this.changeState(newState);
+        this.pushEventToHistory(newState);
         // console.log(" new state set: " + this._state)
     }
 
@@ -54,6 +57,7 @@ class FSM {
      */
     reset() {
         this._state = this.config.initial;
+        this.clearHistory();
     }
 
     /**
@@ -63,11 +67,21 @@ class FSM {
      * @returns {Array}
      */
     getStates(event) {
+        let result = [];
+
         if(!event) {
             return Object.keys(this.config.states);
-        } 
+        } else {
 
-        return [];
+            for(let state in this.config.states) {
+                if(this.config.states[state].transitions[event] !== undefined) {
+                    result.push(state);
+                }
+            }
+
+        }
+
+        return result;
     }
 
     /**
@@ -75,19 +89,45 @@ class FSM {
      * Returns false if undo is not available.
      * @returns {Boolean}
      */
-    undo() {}
+    undo() {
+        if(this._historyNextStep > 0) {
+            this._historyNextStep--;
+            this._state = this._history[this._historyNextStep];
+            return true;
+        }
+
+        return false
+    }
 
     /**
      * Goes redo to state.
      * Returns false if redo is not available.
      * @returns {Boolean}
      */
-    redo() {}
+    redo() {
+        if(this._historyNextStep < this._history.length) {
+            this._historyNextStep++;
+            this._state = this._history[this._historyNextStep];
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Clears transition history
      */
-    clearHistory() {}
+    clearHistory() {
+        this._history = [];
+        this._historyNextStep = 0;
+    }
+
+    pushEventToHistory(state) {
+        this._history.splice(0, this._historyNextStep);
+
+        this._history[this._historyNextStep] = state;
+        this._historyNextStep = this._history.length;
+    }
 }
 
 module.exports = FSM;
