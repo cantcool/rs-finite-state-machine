@@ -8,6 +8,8 @@ class FSM {
             throw new Error("A config is missed");
         }
 
+        // console.log("____________________________________________________");
+
         this.config = config;
         this._state = this.config.initial;
         this._history = [];
@@ -32,6 +34,7 @@ class FSM {
         };
 
         this._state = state;
+        this.pushEventToHistory(state);
     }
 
     /**
@@ -42,14 +45,12 @@ class FSM {
         let currentState = this.getState(),
             newState = this.config.states[currentState].transitions[event];
 
-        // console.log( '!!!!!!!!!!!! new State? ', currentState, newState )
+        // console.log('>>> Trigger', event, '. Was:', currentState, 'New:', newState);
         if(!newState) {
             throw new Error("An attempt to set illegal state has occured");
         }
 
         this.changeState(newState);
-        this.pushEventToHistory(newState);
-        // console.log(" new state set: " + this._state)
     }
 
     /**
@@ -90,13 +91,19 @@ class FSM {
      * @returns {Boolean}
      */
     undo() {
-        if(this._historyNextStep > 0) {
+        if(this._historyNextStep > 1) {
             this._historyNextStep--;
-            this._state = this._history[this._historyNextStep];
-            return true;
-        }
+            this._state = this._history[this._historyNextStep - 1];
 
-        return false
+            return true;
+        } else if (this._history.length > 0 && this._historyNextStep != 0) {
+            this._state = this.config.initial;
+            this._historyNextStep = 0;
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -105,7 +112,7 @@ class FSM {
      * @returns {Boolean}
      */
     redo() {
-        if(this._historyNextStep < this._history.length) {
+        if(this._history[this._historyNextStep + 1] !== undefined) {
             this._historyNextStep++;
             this._state = this._history[this._historyNextStep];
             return true;
@@ -123,10 +130,11 @@ class FSM {
     }
 
     pushEventToHistory(state) {
-        this._history.splice(0, this._historyNextStep);
+        // this._history = this._history.slice(0, this._historyNextStep - 1);
 
         this._history[this._historyNextStep] = state;
         this._historyNextStep = this._history.length;
+        // console.log("History updated: ", this._history, this._historyNextStep);
     }
 }
 
